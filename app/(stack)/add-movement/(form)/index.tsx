@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Yup from "yup";
 import { ITransactionType } from "@/core/movement/types/movement.interfaces";
 import ThemedSpinner from "@/presentation/theme/components/ThemedSpinner";
+import { fetchMovements, initDatabase, insertMovement } from "@/database/db";
 
 // Simulación del servicio
 const service = {
@@ -59,7 +60,21 @@ const FormularioScreen = () => {
   const [subTitleFormStyle, setSubTitleFormStyle] = useState({});
 
   useEffect(() => {
-    fetchTypesMovement();
+    const initializeDatabase = async () => {
+      console.log("test");
+      const res = await initDatabase();
+      if (res) {
+        const movements = await fetchMovements();
+        console.log("Movimientos cargados", movements);
+        fetchTypesMovement();
+        // setListMovements(movements);
+        console.log("Base de datos inicializada");
+      } else {
+        console.log("Error al inicializar la base de datos");
+      }
+    };
+
+    initializeDatabase();
   }, []);
 
   // Llamar al "servicio" y actualizar el estado
@@ -137,9 +152,18 @@ const FormularioScreen = () => {
     if (description.length === 0 || amount.length === 0) {
       return;
     }
-    resetForm();
-    // setIsPosting(true);
-    setIsPosting(false);
+    insertMovement(
+      description,
+      amount,
+      movement,
+      fecha.toISOString(),
+      isMovement
+    ).then((res) => {
+      console.log("Movimiento guardado", res);
+      resetForm();
+      // setIsPosting(true);
+      setIsPosting(false);
+    });
   };
 
   return (
