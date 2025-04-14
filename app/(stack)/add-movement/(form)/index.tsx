@@ -20,29 +20,14 @@ import * as Yup from "yup";
 import { ITransactionType } from "@/core/movement/types/movement.interfaces";
 import ThemedSpinner from "@/presentation/theme/components/ThemedSpinner";
 import { fetchMovements, initDatabase, insertMovement } from "@/database/db";
+import { listTransactionsType } from "@/core/utils/util";
 
 // Simulación del servicio
 const service = {
   getTypesMovement: () =>
     new Promise<ITransactionType[]>((resolve) => {
       setTimeout(() => {
-        resolve([
-          {
-            id: 0,
-            name: "Seleccionar Movimiento",
-            value: "",
-            type: "",
-            disabled: true,
-          },
-          {
-            id: 1,
-            name: "Transferencia",
-            value: "transferencia",
-            type: "abono",
-          },
-          { id: 2, name: "Gastos", value: "gastos", type: "descuento" },
-          { id: 3, name: "Préstamo", value: "prestamo", type: "abono" },
-        ]);
+        resolve(listTransactionsType);
       }, 2000); // Simula una espera de 2 segundos
     }),
 };
@@ -115,10 +100,10 @@ const FormularioScreen = () => {
         "El monto debe ser un número",
         (value) => !isNaN(Number(value))
       )
-      .required("El monto es obligatorio"),
-    movement: Yup.string().required("La contraseña es obligatoria"),
-    fecha: Yup.date().required("La Fecha es obligatoria"),
-    isMovement: Yup.boolean().required("La contraseña es obligatoria"),
+      .required("Campo requerido"),
+    movement: Yup.string().required("Campo requerido"),
+    fecha: Yup.date().required("Campo requerido"),
+    isMovement: Yup.boolean().required("Campo requerido"),
   });
 
   const defineTypeForm = (movementName: string) => {
@@ -249,7 +234,7 @@ const FormularioScreen = () => {
                     <Picker
                       selectedValue={values.movement}
                       onValueChange={(selectedOption) => {
-                        console.log(values.movement);
+                        console.log(values);
                         defineTypeForm(selectedOption);
                         setFieldValue("movement", selectedOption);
                       }}
@@ -258,7 +243,7 @@ const FormularioScreen = () => {
                         <Picker.Item
                           key={item.id}
                           label={item.name}
-                          value={item.name}
+                          value={item.value}
                           enabled={!item.disabled}
                         />
                       ))}
