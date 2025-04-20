@@ -35,18 +35,22 @@ export const useMovementsStore = create<MovementsState>((set, get) => ({
     get().calculateTotals(); // Calcular totales automáticamente al actualizar movimientos
   },
   calculateTotals: () => {
-    const { movements } = get();
-    const totalAbono = movements
-      .filter((item) => {
-        console.log("-> item.movement:", item.adjustment);
-        return item.adjustment === AdjustmentEnum.ABONO;
-      })
-      .reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
+    try {
+      const { movements } = get();
+      const totalAbono = movements
+        .filter((item) => {
+          console.log("-> item.movement:", item.adjustment);
+          return item.adjustment === AdjustmentEnum.ABONO;
+        })
+        .reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
 
-    const totalDescuento = movements
-      .filter((item) => item.adjustment === AdjustmentEnum.DESCUENTO)
-      .reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
+      const totalDescuento = movements
+        .filter((item) => item.adjustment === AdjustmentEnum.DESCUENTO)
+        .reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
 
-    set({ totals: { abono: totalAbono, descuento: totalDescuento } });
+      set({ totals: { abono: totalAbono, descuento: totalDescuento } });
+    } catch (error) {
+      console.error("Error al calcular los totales:", error);
+    }
   },
 }));

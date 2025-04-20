@@ -68,4 +68,32 @@ const fetchMovements = () => {
   });
 };
 
-export { initDatabase, insertMovement, fetchMovements };
+const updateMovement = (
+  id: number,
+  description: string,
+  amount: string,
+  date: string,
+  pending: string,
+  adjustment: string,
+  typeMovement: string
+) => {
+  return new Promise((resolve, reject) => {
+    SQLite.openDatabaseAsync(nameDB)
+      .then(async (db) => {
+        const resultUpdate = await db.runAsync(
+          `UPDATE movements 
+           SET description = ?, amount = ?, date = ?, pending = ?, adjustment = ?, typeMovement = ?
+           WHERE id = ?;`,
+          [description, amount, date, pending, adjustment, typeMovement, id]
+        );
+        resolve(resultUpdate);
+      })
+      .catch((error) => {
+        console.log("Error al actualizar movimiento:", error);
+        reject(error);
+        return false;
+      });
+  });
+};
+
+export { initDatabase, insertMovement, fetchMovements, updateMovement };

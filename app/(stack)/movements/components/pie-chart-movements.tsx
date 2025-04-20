@@ -6,22 +6,23 @@ const screenWidth = Dimensions.get("window").width;
 
 const PieChartMovements = () => {
   const totals = useMovementsStore((state) => state.totals); // Selector para suscribirse a `totals`
+
   if (isNaN(totals.abono) || isNaN(totals.descuento)) {
     return <Text>Sin Data</Text>;
   }
-
+  console.log("totals", totals);
   return (
     <View style={styles.chartContainer}>
       <PieChart
         data={[
           {
             name: "Abono",
-            amount: formatMonto(totals.abono.toString()),
+            amount: totals.abono, //formatMonto(totals.abono.toString()),
             color: "#87bf75",
           },
           {
             name: "Descuento",
-            amount: formatMonto(totals.descuento.toString()),
+            amount: totals.descuento, //formatMonto(totals.descuento.toString()),
             color: "#f9724f",
           },
         ]}

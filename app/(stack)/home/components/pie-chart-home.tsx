@@ -18,12 +18,12 @@ const PieChartHome = (totals: { abono: number; descuento: number }) => {
       data={[
         {
           name: "Abono",
-          amount: formatMonto(totals.abono.toString()),
+          amount: totals.abono, //formatMonto(totals.abono.toString()),
           color: "#87bf75",
         },
         {
           name: "Descuento",
-          amount: formatMonto(totals.descuento.toString()),
+          amount: totals.descuento, // formatMonto(totals.descuento.toString()),
           color: "#f9724f",
         },
       ]}
