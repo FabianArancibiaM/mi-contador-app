@@ -1,18 +1,13 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-} from "react-native";
-import { fetchMovements } from "../../../database/db";
-import { Movement } from "@/core/movement/models/movement.model";
-import { listTransactionsType } from "@/core/utils/util";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { fetchMovements } from "../../../core/database/db";
+import MovementsTable from "./components/MovementsTable";
+import PieChartMovements from "./components/pie-chart-movements";
+import Spinner from "@/components/shared/Spinner";
+import { useMovementsStore } from "@/core/store/movementsStore";
 
 const MovementsScreen = () => {
-  const [loading, setLoading] = useState(true);
-  const [movements, setMovements] = useState<Movement[]>([]);
+  const { movements, loading, setLoading, setMovements } = useMovementsStore();
 
   useEffect(() => {
     const loadMovements = async () => {
@@ -29,13 +24,7 @@ const MovementsScreen = () => {
     loadMovements();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  <Spinner loading={loading} />;
 
   if (movements.length === 0) {
     return (
@@ -47,40 +36,14 @@ const MovementsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={movements}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.row,
-              {
-                backgroundColor:
-                  listTransactionsType.find(
-                    (type) => type.value === item.movement
-                  )?.type === "descuento"
-                    ? "#f9724f"
-                    : "#87bf75",
-              },
-            ]}
-          >
-            <Text style={styles.cell}>{item.description}</Text>
-            <Text style={styles.cell}>{item.amount}</Text>
-            <Text style={styles.cell}>{item.movement}</Text>
-            <Text style={styles.cell}>
-              {new Date(item.fecha).toLocaleDateString("es-ES")}
-            </Text>
-          </View>
-        )}
-        ListHeaderComponent={() => (
-          <View style={styles.header}>
-            <Text style={styles.headerCell}>Descripción</Text>
-            <Text style={styles.headerCell}>Monto</Text>
-            <Text style={styles.headerCell}>Movimiento</Text>
-            <Text style={styles.headerCell}>Fecha</Text>
-          </View>
-        )}
-      />
+      {/* Título */}
+      <Text style={styles.title}>Resumen de Movimientos</Text>
+
+      {/* Gráfico de torta */}
+      <PieChartMovements />
+
+      {/* Tabla de movimientos */}
+      <MovementsTable />
     </View>
   );
 };
@@ -100,27 +63,12 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    paddingBottom: 5,
-    marginBottom: 5,
-  },
-  headerCell: {
-    flex: 1,
+  title: {
+    fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
-  },
-  row: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 5,
-  },
-  cell: {
-    flex: 1,
-    textAlign: "center",
+    marginBottom: 50,
+    color: "#333",
   },
 });
 

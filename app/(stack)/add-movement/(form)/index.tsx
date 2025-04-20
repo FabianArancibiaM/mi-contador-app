@@ -17,10 +17,17 @@ import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import { Formik } from "formik";
 import { Ionicons } from "@expo/vector-icons";
 import * as Yup from "yup";
-import { ITransactionType } from "@/core/movement/types/movement.interfaces";
+import {
+  AdjustmentEnum,
+  ITransactionType,
+} from "@/core/types/movement.interfaces";
 import ThemedSpinner from "@/presentation/theme/components/ThemedSpinner";
-import { fetchMovements, initDatabase, insertMovement } from "@/database/db";
-import { listTransactionsType } from "@/core/utils/util";
+import { formatMonto, listTransactionsType } from "@/core/utils/util";
+import {
+  fetchMovements,
+  initDatabase,
+  insertMovement,
+} from "@/core/database/db";
 
 // Simulación del servicio
 const service = {
@@ -77,15 +84,9 @@ const FormularioScreen = () => {
   const initFomr = {
     description: "",
     amount: "",
-    movement: "",
-    fecha: new Date(),
-    isMovement: true,
-  };
-
-  // Formatear monto con puntos (miles)
-  const formatMonto = (value: string) => {
-    const numericValue = value.replace(/\D/g, ""); // Eliminar caracteres no numéricos
-    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Agregar puntos cada 3 dígitos
+    date: new Date(),
+    pending: true,
+    typeMovement: "",
   };
 
   // Esquema de validación con Yup
@@ -101,9 +102,9 @@ const FormularioScreen = () => {
         (value) => !isNaN(Number(value))
       )
       .required("Campo requerido"),
-    movement: Yup.string().required("Campo requerido"),
-    fecha: Yup.date().required("Campo requerido"),
-    isMovement: Yup.boolean().required("Campo requerido"),
+    typeMovement: Yup.string().required("Campo requerido"),
+    date: Yup.date().required("Campo requerido"),
+    pending: Yup.boolean().required("Campo requerido"),
   });
 
   const defineTypeForm = (movementName: string) => {
@@ -115,10 +116,12 @@ const FormularioScreen = () => {
     }
     if (findMovement) {
       setSubTitleForm(
-        findMovement.type === "abono" ? " Ingreso" : " Descuento"
+        findMovement.type === AdjustmentEnum.ABONO ? " Ingreso" : " Descuento"
       );
       setSubTitleFormStyle(
-        findMovement.type === "abono" ? { color: "green" } : { color: "red" }
+        findMovement.type === AdjustmentEnum.ABONO
+          ? { color: "green" }
+          : { color: "red" }
       );
     } else {
       setSubTitleForm("");
@@ -130,19 +133,27 @@ const FormularioScreen = () => {
     values: any,
     { resetForm }: { resetForm: () => void }
   ) => {
-    const { description, amount, movement, fecha, isMovement } = values;
+    const { description, amount, date, pending, typeMovement } = values;
 
-    console.log({ description, amount, movement, fecha, isMovement });
+    console.log({ description, amount, date, pending, typeMovement });
+
+    const cleanAmount = amount.replace(/\D/g, "");
 
     if (description.length === 0 || amount.length === 0) {
       return;
     }
+
+    const adjustment = listTypesMovement.find(
+      (item) => item.value === typeMovement
+    )?.type;
+
     insertMovement(
       description,
       amount,
-      movement,
-      fecha.toISOString(),
-      isMovement
+      date.toISOString(),
+      pending,
+      adjustment || "",
+      typeMovement
     ).then((res) => {
       console.log("Movimiento guardado", res);
       resetForm();
@@ -232,11 +243,11 @@ const FormularioScreen = () => {
                     }}
                   >
                     <Picker
-                      selectedValue={values.movement}
+                      selectedValue={values.typeMovement}
                       onValueChange={(selectedOption) => {
-                        console.log(values);
+                        console.log(selectedOption);
                         defineTypeForm(selectedOption);
-                        setFieldValue("movement", selectedOption);
+                        setFieldValue("typeMovement", selectedOption);
                       }}
                     >
                       {listTypesMovement.map((item) => (
@@ -249,8 +260,8 @@ const FormularioScreen = () => {
                       ))}
                     </Picker>
                   </View>
-                  {touched.movement && errors.movement && (
-                    <Text style={styles.error}>{errors.movement}</Text>
+                  {touched.typeMovement && errors.typeMovement && (
+                    <Text style={styles.error}>{errors.typeMovement}</Text>
                   )}
 
                   {/* Fecha - Muestra el calendario al tocar */}
@@ -274,25 +285,25 @@ const FormularioScreen = () => {
                       style={{ marginRight: 10 }}
                     />
                     {!showDatePicker && (
-                      <Text>{values.fecha.toLocaleDateString("es-ES")}</Text>
+                      <Text>{values.date.toLocaleDateString("es-ES")}</Text>
                     )}
                     {showDatePicker && (
                       <DateTimePicker
-                        value={values.fecha}
+                        value={values.date}
                         mode="date"
                         display="default"
                         onChange={(event, selectedDate) => {
                           setShowDatePicker(false);
                           setFieldValue(
-                            "fecha",
+                            "date",
                             new Date(event.nativeEvent.timestamp)
                           );
-                          handleChange("fecha");
+                          handleChange("date");
                         }}
                       />
                     )}
                   </TouchableOpacity>
-                  {touched.fecha && errors.fecha && (
+                  {touched.date && errors.date && (
                     <Text style={styles.error}>La Fecha es obligatoria</Text>
                   )}
 

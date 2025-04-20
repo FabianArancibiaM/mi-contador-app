@@ -1,20 +1,20 @@
 import * as SQLite from "expo-sqlite";
-import * as FileSystem from "expo-file-system";
 
-let db;
 const nameDB = "db.db";
 
 const initDatabase = () => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
+        // await db.execAsync(`DROP TABLE movements;`);
         await db.execAsync(`CREATE TABLE IF NOT EXISTS movements (
             id INTEGER PRIMARY KEY NOT NULL,
-            description TEXT NOT NULL,
+            description TEXT NOT NULL, 
             amount REAL NOT NULL,
-            movement TEXT NOT NULL,
-            fecha TEXT NOT NULL,
-            isMovement BOOLEAN NOT NULL
+            date TEXT NOT NULL,
+            pending BOOLEAN NOT NULL,
+            adjustment TEXT NOT NULL,
+            typeMovement TEXT NOT NULL
           );`);
         resolve(true);
       })
@@ -28,20 +28,22 @@ const initDatabase = () => {
 const insertMovement = (
   description: string,
   amount: string,
-  movement: string,
-  fecha: string,
-  isMovement: string
+  date: string,
+  pending: string,
+  adjustment: string,
+  typeMovement: string
 ) => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
         const resultInser = await db.runAsync(
-          `INSERT INTO movements (description, amount, movement, fecha, isMovement) VALUES (?, ?, ?, ?, ?);`,
-          [description, amount, movement, fecha, isMovement]
+          `INSERT INTO movements (description, amount, date, pending, adjustment, typeMovement) VALUES (?, ?, ?, ?, ?, ?);`,
+          [description, amount, date, pending, adjustment, typeMovement]
         );
         resolve(resultInser);
       })
       .catch((error) => {
+        console.log("Error al insertar movimiento:", error);
         reject(error);
         return false;
       });
@@ -56,6 +58,7 @@ const fetchMovements = () => {
           `SELECT * FROM movements;`,
           []
         );
+        console.log(JSON.stringify(resultInser));
         resolve(resultInser);
       })
       .catch((error) => {

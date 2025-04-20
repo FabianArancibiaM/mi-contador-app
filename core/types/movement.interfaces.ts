@@ -5,3 +5,8 @@ export interface ITransactionType {
   type: string;
   disabled?: boolean;
 }
+
+export enum AdjustmentEnum {
+  ABONO = "abono",
+  DESCUENTO = "descuento",
+}
