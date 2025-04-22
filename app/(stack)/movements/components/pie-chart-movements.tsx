@@ -2,68 +2,112 @@ import { useMovementsStore } from "@/core/store/movementsStore";
 import { formatMonto } from "@/core/utils/util";
 import { StyleSheet, View, Dimensions, Text } from "react-native";
 import { PieChart } from "react-native-chart-kit";
+
 const screenWidth = Dimensions.get("window").width;
 
 const PieChartMovements = () => {
-  const totals = useMovementsStore((state) => state.totals); // Selector para suscribirse a `totals`
+  const totals = useMovementsStore((state) => state.totals);
 
-  if (isNaN(totals.abono) || isNaN(totals.descuento)) {
-    return <Text>Sin Data</Text>;
+  const noData =
+    isNaN(totals.abono) ||
+    isNaN(totals.descuento) ||
+    (totals.abono === 0 && totals.descuento === 0);
+
+  if (noData) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Aún no hay movimientos registrados</Text>
+      </View>
+    );
   }
-  console.log("totals", totals);
+
+  const chartData = [
+    {
+      name: "Disponible",
+      amount: totals.abono,
+      color: "#87bf75",
+    },
+    {
+      name: "Gastos",
+      amount: totals.descuento,
+      color: "#f9724f",
+    },
+  ];
+
+  const totalGlobal = totals.abono + totals.descuento;
+
   return (
-    <View style={styles.chartContainer}>
+    <View style={styles.card}>
+      <Text style={styles.title}>Resumen General</Text>
+
       <PieChart
-        data={[
-          {
-            name: "Abono",
-            amount: totals.abono, //formatMonto(totals.abono.toString()),
-            color: "#87bf75",
-          },
-          {
-            name: "Descuento",
-            amount: totals.descuento, //formatMonto(totals.descuento.toString()),
-            color: "#f9724f",
-          },
-        ]}
-        width={screenWidth}
-        height={250}
+        data={chartData}
+        width={screenWidth - 40}
+        height={240}
         chartConfig={{
           color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
         }}
         accessor={"amount"}
         backgroundColor={"transparent"}
-        paddingLeft={"100"}
+        paddingLeft={"0"}
+        center={[80, 0]}
         absolute
-        center={[0, 0]}
         hasLegend={false}
       />
-      {/* Leyenda con círculos */}
+
+      <View style={styles.totalContainer}>
+        <Text style={styles.totalText}>
+          Total: {formatMonto(totalGlobal.toString())}
+        </Text>
+      </View>
+
       <View style={styles.legendContainer}>
-        <View style={styles.legendItem}>
-          <View style={[styles.circle, { backgroundColor: "#87bf75" }]} />
-          <Text style={styles.legendText}>Disponible</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.circle, { backgroundColor: "#f9724f" }]} />
-          <Text style={styles.legendText}>Gastos</Text>
-        </View>
+        {chartData.map((item, index) => (
+          <View key={index} style={styles.legendItem}>
+            <View style={[styles.circle, { backgroundColor: item.color }]} />
+            <Text style={styles.legendText}>{item.name}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );
 };
 
+export default PieChartMovements;
+
 const styles = StyleSheet.create({
-  chartContainer: {
-    flex: 1,
-    justifyContent: "center", // Centrar verticalmente
-    alignItems: "center", // Centrar horizontalmente
-    marginBottom: 100,
+  card: {
+    marginHorizontal: 20,
+    marginVertical: 20,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  totalContainer: {
+    marginTop: 10,
+  },
+  totalText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
   },
   legendContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 10,
+    marginTop: 15,
   },
   legendItem: {
     flexDirection: "row",
@@ -71,14 +115,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   circle: {
-    width: 15,
-    height: 15,
-    borderRadius: 7.5,
-    marginRight: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 6,
   },
   legendText: {
     fontSize: 14,
-    color: "#000",
+    color: "#555",
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    fontStyle: "italic",
   },
 });
-export default PieChartMovements;

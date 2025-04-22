@@ -1,20 +1,42 @@
+import { AdjustmentEnum } from "../types/movement.interfaces";
+
 export const listTransactionsType = [
-  {
-    id: 0,
-    name: "Seleccionar Movimiento",
-    value: "",
-    type: "",
-    disabled: true,
-  },
   {
     id: 1,
     name: "Transferencia",
     value: "transferencia",
-    type: "abono",
+    type: AdjustmentEnum.ABONO,
+    defaultCategory: "Finanzas",
   },
-  { id: 2, name: "Gastos", value: "gastos", type: "descuento" },
-  { id: 3, name: "Préstamo", value: "prestamo", type: "abono" },
+  {
+    id: 2,
+    name: "Gastos",
+    value: "gastos",
+    type: AdjustmentEnum.DESCUENTO,
+    defaultCategory: "Otros",
+  },
+  {
+    id: 3,
+    name: "Préstamo",
+    value: "prestamo",
+    type: AdjustmentEnum.ABONO,
+    defaultCategory: "Finanzas",
+  },
 ];
+
+export const categorias = [
+  "Alimentación",
+  "Transporte",
+  "Salud",
+  "Hogar",
+  "Ocio",
+  "Ropa",
+  "Educación",
+  "Finanzas",
+  "Otros",
+];
+
+export const mediosPago = ["Efectivo", "Débito", "Crédito", "Transferencia"];
 
 // Formatear monto con puntos (miles)
 export const formatMonto = (value: string) => {

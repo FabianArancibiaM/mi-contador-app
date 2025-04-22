@@ -6,13 +6,13 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Button,
 } from "react-native";
 import { Movement } from "@/core/models/movement.model";
 import { formatMonto, listTransactionsType } from "@/core/utils/util";
 import { useMovementsStore } from "@/core/store/movementsStore";
 import { AdjustmentEnum } from "@/core/types/movement.interfaces";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const MovementsTable = () => {
   const { movements } = useMovementsStore();
@@ -26,8 +26,6 @@ const MovementsTable = () => {
 
   const handleEdit = () => {
     if (selectedItem) {
-      // Navegar a la página "/edit-movement" con los datos del item seleccionado
-      console.log("Editar:", selectedItem);
       router.push({
         pathname: "/edit-movement",
         params: { id: selectedItem.id },
@@ -41,54 +39,69 @@ const MovementsTable = () => {
     setModalVisible(false);
   };
 
+  const getColorByType = (type: string) => {
+    const t = listTransactionsType.find((item) => item.value === type);
+    return t?.type === AdjustmentEnum.DESCUENTO ? "#ffe2e0" : "#e1f3e0";
+  };
+
+  const getIconByType = (type: string) => {
+    const t = listTransactionsType.find((item) => item.value === type);
+    if (t?.type === AdjustmentEnum.DESCUENTO) return "remove-circle";
+    if (t?.type === AdjustmentEnum.ABONO) return "add-circle";
+    return "help-circle";
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <FlatList
         data={movements}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleRowPress(item)}>
-            <View
-              style={[
-                styles.row,
-                {
-                  backgroundColor:
-                    listTransactionsType.find(
-                      (type) => type.value === item.typeMovement
-                    )?.type === AdjustmentEnum.DESCUENTO
-                      ? "#f9724f"
-                      : "#87bf75",
-                },
-              ]}
-            >
-              <Text style={styles.cell}>{item.description}</Text>
-              <Text style={styles.cell}>
-                {formatMonto(item.amount.toString())}
-              </Text>
-              <Text style={styles.cell}>
-                {
-                  listTransactionsType.find(
-                    (type) => type.value === item.typeMovement
-                  )?.name
-                }
-              </Text>
-              <Text style={styles.cell}>
-                {new Date(item.date).toLocaleDateString("es-ES")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const typeData = listTransactionsType.find(
+            (t) => t.value === item.typeMovement
+          );
+          return (
+            <TouchableOpacity onPress={() => handleRowPress(item)}>
+              <View
+                style={[
+                  styles.row,
+                  { backgroundColor: getColorByType(item.typeMovement) },
+                ]}
+              >
+                <Ionicons
+                  name={getIconByType(item.typeMovement)}
+                  size={22}
+                  style={styles.icon}
+                  color={
+                    typeData?.type === AdjustmentEnum.ABONO ? "green" : "red"
+                  }
+                />
+                <View style={styles.infoContainer}>
+                  <Text style={styles.desc}>{item.description}</Text>
+                  <Text style={styles.date}>
+                    {new Date(item.date).toLocaleDateString("es-ES")}
+                  </Text>
+                </View>
+                <View style={styles.amountContainer}>
+                  <Text style={styles.amount}>
+                    {formatMonto(item.amount.toString())}
+                  </Text>
+                  <Text style={styles.badge}>
+                    {typeData?.name || "Tipo desconocido"}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListHeaderComponent={() => (
           <View style={styles.header}>
-            <Text style={styles.headerCell}>Descripción</Text>
-            <Text style={styles.headerCell}>Monto</Text>
-            <Text style={styles.headerCell}>Movimiento</Text>
-            <Text style={styles.headerCell}>Fecha</Text>
+            <Text style={styles.headerText}>Movimientos Registrados</Text>
           </View>
         )}
       />
 
-      {/* Modal */}
+      {/* Modal de acciones */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -97,16 +110,36 @@ const MovementsTable = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selecciona una opción</Text>
-            <View style={styles.buttonContainer}>
-              <Button title="Editar" onPress={handleEdit} />
-              <Button title="Eliminar" onPress={handleDelete} color="red" />
+            {selectedItem && (
+              <>
+                <Text style={styles.modalTitle}>Detalles</Text>
+                <Text>Descripción: {selectedItem.description}</Text>
+                <Text>
+                  Monto: {formatMonto(selectedItem.amount.toString())}
+                </Text>
+                <Text>
+                  Fecha:{" "}
+                  {new Date(selectedItem.date).toLocaleDateString("es-ES")}
+                </Text>
+                <Text>Tipo: {selectedItem.typeMovement}</Text>
+                <Text>
+                  Estado: {selectedItem.pending ? "Pendiente" : "Realizado"}
+                </Text>
+              </>
+            )}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={handleEdit} style={styles.modalButton}>
+                <Text>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDelete}
+                style={[styles.modalButton, { backgroundColor: "#ff4f4f" }]}
+              >
+                <Text style={{ color: "#fff" }}>Eliminar</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Cerrar</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.close}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -115,63 +148,89 @@ const MovementsTable = () => {
   );
 };
 
+export default MovementsTable;
+
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
+    padding: 15,
+    backgroundColor: "#f2f2f2",
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
-    paddingBottom: 5,
-    marginBottom: 5,
   },
-  headerCell: {
-    flex: 1,
+  headerText: {
+    fontSize: 18,
     fontWeight: "bold",
-    textAlign: "center",
   },
   row: {
     flexDirection: "row",
+    padding: 12,
+    alignItems: "center",
+    borderBottomColor: "#ddd",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 5,
   },
-  cell: {
+  icon: {
+    marginRight: 10,
+  },
+  infoContainer: {
+    flex: 2,
+  },
+  amountContainer: {
     flex: 1,
+    alignItems: "flex-end",
+  },
+  desc: {
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  date: {
+    fontSize: 12,
+    color: "#555",
+  },
+  amount: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  badge: {
+    backgroundColor: "#ddd",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    fontSize: 12,
+    marginTop: 2,
     textAlign: "center",
   },
   modalContainer: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 20,
   },
   modalContent: {
-    width: "80%",
     backgroundColor: "#fff",
     borderRadius: 10,
     padding: 20,
-    alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
   },
-  buttonContainer: {
+  modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 20,
+    marginVertical: 15,
   },
-  closeButton: {
-    marginTop: 10,
+  modalButton: {
     padding: 10,
-    backgroundColor: "#ccc",
-    borderRadius: 5,
+    backgroundColor: "#ddd",
+    borderRadius: 6,
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 5,
   },
-  closeButtonText: {
-    color: "#000",
+  close: {
+    textAlign: "center",
+    marginTop: 10,
     fontWeight: "bold",
   },
 });
-
-export default MovementsTable;

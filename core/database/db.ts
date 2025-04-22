@@ -6,7 +6,7 @@ const initDatabase = () => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
-        // await db.execAsync(`DROP TABLE movements;`);
+        // await db.execAsync(`DROP TABLE IF EXISTS movements;`);
         await db.execAsync(`CREATE TABLE IF NOT EXISTS movements (
             id INTEGER PRIMARY KEY NOT NULL,
             description TEXT NOT NULL, 
@@ -14,7 +14,11 @@ const initDatabase = () => {
             date TEXT NOT NULL,
             pending BOOLEAN NOT NULL,
             adjustment TEXT NOT NULL,
-            typeMovement TEXT NOT NULL
+            typeMovement TEXT NOT NULL,
+            category TEXT NOT NULL,
+            paymentMethod TEXT NOT NULL,
+            notes TEXT,
+            recurring BOOLEAN NOT NULL
           );`);
         resolve(true);
       })
@@ -31,16 +35,32 @@ const insertMovement = (
   date: string,
   pending: string,
   adjustment: string,
-  typeMovement: string
+  typeMovement: string,
+  category: string,
+  paymentMethod: string,
+  notes: string,
+  recurring: boolean
 ) => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
-        const resultInser = await db.runAsync(
-          `INSERT INTO movements (description, amount, date, pending, adjustment, typeMovement) VALUES (?, ?, ?, ?, ?, ?);`,
-          [description, amount, date, pending, adjustment, typeMovement]
+        const resultInsert = await db.runAsync(
+          `INSERT INTO movements (description, amount, date, pending, adjustment, typeMovement, category, paymentMethod, notes, recurring) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          [
+            description,
+            amount,
+            date,
+            pending,
+            adjustment,
+            typeMovement,
+            category,
+            paymentMethod,
+            notes,
+            recurring,
+          ]
         );
-        resolve(resultInser);
+        resolve(resultInsert);
       })
       .catch((error) => {
         console.log("Error al insertar movimiento:", error);
@@ -54,14 +74,14 @@ const fetchMovements = () => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
-        const resultInser = await db.getAllAsync(
+        const resultFetch = await db.getAllAsync(
           `SELECT * FROM movements;`,
           []
         );
-        console.log(JSON.stringify(resultInser));
-        resolve(resultInser);
+        resolve(resultFetch);
       })
       .catch((error) => {
+        console.log("Error al obtener movimientos:", error);
         reject(error);
         return false;
       });
@@ -75,16 +95,32 @@ const updateMovement = (
   date: string,
   pending: string,
   adjustment: string,
-  typeMovement: string
+  typeMovement: string,
+  category: string,
+  paymentMethod: string,
+  notes: string,
+  recurring: boolean
 ) => {
   return new Promise((resolve, reject) => {
     SQLite.openDatabaseAsync(nameDB)
       .then(async (db) => {
         const resultUpdate = await db.runAsync(
           `UPDATE movements 
-           SET description = ?, amount = ?, date = ?, pending = ?, adjustment = ?, typeMovement = ?
+           SET description = ?, amount = ?, date = ?, pending = ?, adjustment = ?, typeMovement = ?, category = ?, paymentMethod = ?, notes = ?, recurring = ?
            WHERE id = ?;`,
-          [description, amount, date, pending, adjustment, typeMovement, id]
+          [
+            description,
+            amount,
+            date,
+            pending,
+            adjustment,
+            typeMovement,
+            category,
+            paymentMethod,
+            notes,
+            recurring,
+            id,
+          ]
         );
         resolve(resultUpdate);
       })

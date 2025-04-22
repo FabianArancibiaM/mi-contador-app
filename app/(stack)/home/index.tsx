@@ -31,23 +31,8 @@ const HomeScreen = () => {
   const { totals, loading, setLoading, setMovements } = useMovementsStore();
 
   const menuList = [
-    { title: " Movimiento", icon: ImageAssets.add, route: "/movements" },
-    { title: "Products", icon: ImageAssets.add, route: "/products" },
-    {
-      title: "Agregar Movimiento",
-      icon: ImageAssets.add,
-      route: "/add-movement",
-    },
-    {
-      title: "Agregar Movimiento",
-      icon: ImageAssets.add,
-      route: "/add-movement",
-    },
-    {
-      title: "Agregar Movimiento",
-      icon: ImageAssets.add,
-      route: "/add-movement",
-    },
+    { title: "Movimiento", icon: ImageAssets.add, route: "/movements" },
+    { title: "Productos", icon: ImageAssets.add, route: "/products" },
     {
       title: "Agregar Movimiento",
       icon: ImageAssets.add,
@@ -109,7 +94,7 @@ const Menu = ({
   route,
 }: {
   title: string;
-  image: any; // Replace 'any' with the specific type of your image if known
+  image: any;
   route: string;
 }) => {
   return (
@@ -127,12 +112,17 @@ const stylesCardMenu = StyleSheet.create({
   cardContainer: {
     width: "48%", // Para hacer 2 columnas por fila
     height: 100,
-    backgroundColor: colors.base2,
+    backgroundColor: colors.cardBackground, // Cambio aquí
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
     borderRadius: 8,
     padding: 5,
+    shadowColor: colors.shadow, // Agregando sombra
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5, // Sombra para Android
   },
   cardImage: {
     width: "40%",
@@ -144,21 +134,14 @@ const stylesCardMenu = StyleSheet.create({
     fontSize: 18,
     marginBottom: 10,
     fontFamily: "WorkSans-Medium",
+    color: colors.textPrimary, // Cambio aquí
   },
 });
 
 const CardDetails = (totals: { abono: number; descuento: number }) => {
-  const info = {
-    earnings: 23000,
-    expense: 4322,
-  };
-
   return (
     <View style={stylesCardDetails.cardContainer}>
-      <PieChartHome
-        abono={totals.abono}
-        descuento={totals.descuento}
-      ></PieChartHome>
+      <PieChartHome abono={totals.abono} descuento={totals.descuento} />
       <Text style={stylesCardDetails.cardTitle}>Balance General</Text>
       <View style={stylesCardDetails.cardDetails}>
         <Image
@@ -185,15 +168,16 @@ const CardDetails = (totals: { abono: number; descuento: number }) => {
     </View>
   );
 };
+
 const stylesCardDetails = StyleSheet.create({
   cardContainer: {
-    backgroundColor: colors.base2,
+    backgroundColor: colors.cardBackground, // Cambio aquí
     borderRadius: 10,
-    shadowColor: "#000",
+    shadowColor: colors.shadow, // Agregando sombra
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5, // Sombras en Android
+    elevation: 5, // Sombra en Android
     margin: 10,
     padding: 10,
     overflow: "hidden", // Para que los bordes redondeados funcionen con la imagen
@@ -213,16 +197,19 @@ const stylesCardDetails = StyleSheet.create({
     fontSize: 32,
     marginBottom: 10,
     fontFamily: "WorkSans-Black",
+    color: colors.textPrimary, // Cambio aquí
   },
   cardField: {
     fontSize: 20,
     marginBottom: 5,
     fontFamily: "WorkSans-Light",
+    color: colors.textSecondary, // Cambio aquí
   },
   cardvalue: {
     fontSize: 20,
     marginBottom: 5,
     fontFamily: "WorkSans-Medium",
+    color: colors.textPrimary, // Cambio aquí
   },
 });
 

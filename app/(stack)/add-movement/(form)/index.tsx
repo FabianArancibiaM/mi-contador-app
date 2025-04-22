@@ -22,20 +22,24 @@ import {
   ITransactionType,
 } from "@/core/types/movement.interfaces";
 import ThemedSpinner from "@/presentation/theme/components/ThemedSpinner";
-import { formatMonto, listTransactionsType } from "@/core/utils/util";
+import {
+  categorias,
+  formatMonto,
+  listTransactionsType,
+  mediosPago,
+} from "@/core/utils/util";
 import {
   fetchMovements,
   initDatabase,
   insertMovement,
 } from "@/core/database/db";
 
-// Simulación del servicio
 const service = {
   getTypesMovement: () =>
     new Promise<ITransactionType[]>((resolve) => {
       setTimeout(() => {
         resolve(listTransactionsType);
-      }, 2000); // Simula una espera de 2 segundos
+      }, 2000);
     }),
 };
 
@@ -53,23 +57,16 @@ const FormularioScreen = () => {
 
   useEffect(() => {
     const initializeDatabase = async () => {
-      console.log("test");
       const res = await initDatabase();
       if (res) {
         const movements = await fetchMovements();
-        console.log("Movimientos cargados", movements);
         fetchTypesMovement();
-        // setListMovements(movements);
-        console.log("Base de datos inicializada");
-      } else {
-        console.log("Error al inicializar la base de datos");
       }
     };
 
     initializeDatabase();
   }, []);
 
-  // Llamar al "servicio" y actualizar el estado
   const fetchTypesMovement = async () => {
     try {
       const types = await service.getTypesMovement();
@@ -87,15 +84,18 @@ const FormularioScreen = () => {
     date: new Date(),
     pending: true,
     typeMovement: "",
+    category: "",
+    paymentMethod: "",
+    notes: "",
+    recurring: false,
   };
 
-  // Esquema de validación con Yup
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .min(3, "Debe tener al menos 3 caracteres")
       .required("El campo es obligatorio"),
     amount: Yup.string()
-      .transform((value) => value.replace(/\./g, "")) // Quitar puntos antes de validar
+      .transform((value) => value.replace(/\./g, ""))
       .test(
         "is-number",
         "El monto debe ser un número",
@@ -105,15 +105,15 @@ const FormularioScreen = () => {
     typeMovement: Yup.string().required("Campo requerido"),
     date: Yup.date().required("Campo requerido"),
     pending: Yup.boolean().required("Campo requerido"),
+    category: Yup.string().required("Campo requerido"),
+    paymentMethod: Yup.string().required("Campo requerido"),
   });
 
   const defineTypeForm = (movementName: string) => {
     const findMovement = listTypesMovement.find(
       (data) => data.name === movementName
     );
-    if (findMovement?.type === "") {
-      return;
-    }
+    if (findMovement?.type === "") return;
     if (findMovement) {
       setSubTitleForm(
         findMovement.type === AdjustmentEnum.ABONO ? " Ingreso" : " Descuento"
@@ -133,9 +133,17 @@ const FormularioScreen = () => {
     values: any,
     { resetForm }: { resetForm: () => void }
   ) => {
-    const { description, amount, date, pending, typeMovement } = values;
-
-    console.log({ description, amount, date, pending, typeMovement });
+    const {
+      description,
+      amount,
+      date,
+      pending,
+      typeMovement,
+      category,
+      paymentMethod,
+      notes,
+      recurring,
+    } = values;
 
     const cleanAmount = amount.replace(/\D/g, "");
 
@@ -149,15 +157,17 @@ const FormularioScreen = () => {
 
     insertMovement(
       description,
-      amount,
+      cleanAmount,
       date.toISOString(),
       pending,
       adjustment || "",
-      typeMovement
-    ).then((res) => {
-      console.log("Movimiento guardado", res);
+      typeMovement,
+      category,
+      paymentMethod,
+      notes,
+      recurring
+    ).then(() => {
       resetForm();
-      // setIsPosting(true);
       setIsPosting(false);
     });
   };
@@ -177,217 +187,233 @@ const FormularioScreen = () => {
         touched,
       }) => (
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          {
-            // Muestra un spinner mientras se cargan los datos
-            loadingTypes ? (
-              ThemedSpinner({ color: primaryColor })
-            ) : (
-              <ScrollView
-                style={{
-                  paddingHorizontal: 40,
-                  backgroundColor: backgroundColor,
-                }}
-              >
+          {loadingTypes ? (
+            <ThemedSpinner color={primaryColor} />
+          ) : (
+            <ScrollView
+              style={{
+                paddingHorizontal: 30,
+                backgroundColor: backgroundColor,
+              }}
+            >
+              <View style={styles.titleContainer}>
+                <ThemedText type="title">Formulario</ThemedText>
+                <ThemedText type="subtitle" style={[subTitleFormStyle]}>
+                  {subTitleForm}
+                </ThemedText>
+              </View>
+
+              <View style={styles.formContainer}>
+                {/* Descripción */}
+                <Text style={styles.label}>Descripción:</Text>
+                <ThemedTextInput
+                  placeholder="Ej: Compra de alimentos"
+                  autoCapitalize="words"
+                  icon="person-outline"
+                  value={values.description}
+                  onChangeText={(value) => setFieldValue("description", value)}
+                />
+                {touched.description && errors.description && (
+                  <Text style={styles.error}>{errors.description}</Text>
+                )}
+
+                {/* Monto */}
+                <Text style={styles.label}>Monto:</Text>
+                <ThemedTextInput
+                  placeholder="Ej: 100.000"
+                  keyboardType="numeric"
+                  autoCapitalize="none"
+                  icon="wallet-sharp"
+                  value={values.amount}
+                  onChangeText={(text) =>
+                    setFieldValue("amount", formatMonto(text))
+                  }
+                />
+                {touched.amount && errors.amount && (
+                  <Text style={styles.error}>{errors.amount}</Text>
+                )}
+
+                {/* Movimiento */}
+                <Text style={styles.label}>Movimiento:</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={values.typeMovement}
+                    onValueChange={(selectedOption) => {
+                      defineTypeForm(selectedOption);
+                      setFieldValue("typeMovement", selectedOption);
+                    }}
+                  >
+                    <Picker.Item
+                      label="Seleccionar Movimiento"
+                      value=""
+                      enabled={false}
+                    />
+                    {listTypesMovement.map((item) => (
+                      <Picker.Item
+                        key={item.id}
+                        label={item.name}
+                        value={item.value}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+                {touched.typeMovement && errors.typeMovement && (
+                  <Text style={styles.error}>{errors.typeMovement}</Text>
+                )}
+
+                {/* Fecha */}
+                <Text style={styles.label}>Fecha:</Text>
+                <TouchableOpacity
+                  style={styles.datePicker}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Ionicons
+                    name="calendar"
+                    size={24}
+                    color="black"
+                    style={{ marginRight: 10 }}
+                  />
+                  {!showDatePicker && (
+                    <Text>{values.date.toLocaleDateString("es-ES")}</Text>
+                  )}
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={values.date}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowDatePicker(false);
+                        setFieldValue(
+                          "date",
+                          new Date(event.nativeEvent.timestamp)
+                        );
+                        handleChange("date");
+                      }}
+                    />
+                  )}
+                </TouchableOpacity>
+                {touched.date && errors.date && (
+                  <Text style={styles.error}>La Fecha es obligatoria</Text>
+                )}
+
+                <Text style={styles.label}>Categoría:</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={values.category}
+                    onValueChange={(value) => setFieldValue("category", value)}
+                  >
+                    <Picker.Item label="Selecciona una categoría" value="" />
+                    {categorias.map((cat, index) => (
+                      <Picker.Item key={index} label={cat} value={cat} />
+                    ))}
+                  </Picker>
+                </View>
+                {touched.category && errors.category && (
+                  <Text style={styles.error}>{errors.category}</Text>
+                )}
+
+                <Text style={styles.label}>Medio de pago:</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={values.paymentMethod}
+                    onValueChange={(value) =>
+                      setFieldValue("paymentMethod", value)
+                    }
+                  >
+                    <Picker.Item label="Selecciona un método" value="" />
+                    {mediosPago.map((medio, index) => (
+                      <Picker.Item key={index} label={medio} value={medio} />
+                    ))}
+                  </Picker>
+                </View>
+                {touched.paymentMethod && errors.paymentMethod && (
+                  <Text style={styles.error}>{errors.paymentMethod}</Text>
+                )}
+
+                <Text style={styles.label}>Notas:</Text>
+                <ThemedTextInput
+                  placeholder="Detalles adicionales"
+                  icon="document-text-outline"
+                  value={values.notes}
+                  onChangeText={(value) => setFieldValue("notes", value)}
+                />
+
                 <View
                   style={{
-                    paddingTop: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
                   }}
                 >
-                  <ThemedText type="title">Formulario</ThemedText>
-                  <ThemedText type="subtitle" style={[subTitleFormStyle]}>
-                    {subTitleForm}
-                  </ThemedText>
-                </View>
-
-                <View style={{ marginTop: 20 }}>
-                  {/* Descripción */}
-                  <Text>Descripción:</Text>
-                  <ThemedTextInput
-                    placeholder="Ej: Compra de alimentos"
-                    autoCapitalize="words"
-                    icon="person-outline"
-                    value={values.description}
-                    onChangeText={(value) =>
-                      setFieldValue("description", value)
-                    }
+                  <Text>¿Gasto recurrente?</Text>
+                  <Switch
+                    value={values.recurring}
+                    onValueChange={(val) => {
+                      setFieldValue("recurring", val);
+                    }}
+                    trackColor={{ false: "#ccc", true: primaryColor }}
+                    thumbColor={values.recurring ? "#fff" : "#f4f3f4"}
+                    style={{ marginLeft: 10 }}
                   />
-                  {touched.description && errors.description && (
-                    <Text style={styles.error}>{errors.description}</Text>
-                  )}
-
-                  {/* Monto */}
-                  <Text>Monto:</Text>
-                  <ThemedTextInput
-                    placeholder="Ej: 100.000"
-                    keyboardType="numeric"
-                    autoCapitalize="none"
-                    icon="wallet-sharp"
-                    value={values.amount}
-                    onChangeText={(text) =>
-                      setFieldValue("amount", formatMonto(text))
-                    }
-                  />
-                  {touched.amount && errors.amount && (
-                    <Text style={styles.error}>{errors.amount}</Text>
-                  )}
-
-                  {/* Movimiento */}
-                  <Text>Movimiento:</Text>
-                  <View
-                    style={{
-                      borderColor: "#ccc",
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      marginTop: 1,
-                      padding: 0,
-                    }}
-                  >
-                    <Picker
-                      selectedValue={values.typeMovement}
-                      onValueChange={(selectedOption) => {
-                        console.log(selectedOption);
-                        defineTypeForm(selectedOption);
-                        setFieldValue("typeMovement", selectedOption);
-                      }}
-                    >
-                      {listTypesMovement.map((item) => (
-                        <Picker.Item
-                          key={item.id}
-                          label={item.name}
-                          value={item.value}
-                          enabled={!item.disabled}
-                        />
-                      ))}
-                    </Picker>
-                  </View>
-                  {touched.typeMovement && errors.typeMovement && (
-                    <Text style={styles.error}>{errors.typeMovement}</Text>
-                  )}
-
-                  {/* Fecha - Muestra el calendario al tocar */}
-                  <Text style={{ marginTop: 10 }}>Fecha:</Text>
-                  <TouchableOpacity
-                    style={{
-                      borderWidth: 1,
-                      borderColor: "#ccc",
-                      padding: 10,
-                      borderRadius: 5,
-                      marginBottom: 10,
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Ionicons
-                      name="calendar"
-                      size={24}
-                      color="black"
-                      style={{ marginRight: 10 }}
-                    />
-                    {!showDatePicker && (
-                      <Text>{values.date.toLocaleDateString("es-ES")}</Text>
-                    )}
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={values.date}
-                        mode="date"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setShowDatePicker(false);
-                          setFieldValue(
-                            "date",
-                            new Date(event.nativeEvent.timestamp)
-                          );
-                          handleChange("date");
-                        }}
-                      />
-                    )}
-                  </TouchableOpacity>
-                  {touched.date && errors.date && (
-                    <Text style={styles.error}>La Fecha es obligatoria</Text>
-                  )}
-
-                  {/* <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      padding: 10,
-                    }}
-                  >
-                    {values.isMovement ? (
-                      <Text
-                        style={{
-                          position: "absolute",
-                          color: "white",
-                          top: 15,
-                          left: 42,
-                          zIndex: 5,
-                          fontSize: 15,
-                        }}
-                      >
-                        Sí
-                      </Text>
-                    ) : (
-                      <Text
-                        style={{
-                          position: "absolute",
-                          color: "white",
-                          top: 15,
-                          left: 10,
-                          zIndex: 5,
-                          fontSize: 15,
-                        }}
-                      >
-                        No
-                      </Text>
-                    )}
-                    <Switch
-                      trackColor={{ false: "red", true: "gray" }} // Color del fondo
-                      thumbColor={values.isMovement ? "blue" : "red"} // Color del botón
-                      ios_backgroundColor="#3e3e3e"
-                      onValueChange={() => {
-                        setFieldValue("isMovement", !values.isMovement);
-                      }}
-                      value={values.isMovement}
-                      style={{ transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }] }}
-                    />
-                    <Text
-                      style={{ marginLeft: 18 }}
-                      onPress={() => {
-                        setFieldValue("isMovement", !values.isMovement);
-                      }}
-                    >
-                      Movimiento realizado
-                    </Text>
-                  </View> */}
                 </View>
+              </View>
 
-                {/* Spacer */}
-                <View style={{ marginTop: 10 }} />
-
-                {/* Botón */}
-                <ThemedButton
-                  icon="arrow-forward-outline"
-                  onPress={handleSubmit}
-                  disabled={isPosting}
-                >
-                  Guardar
-                </ThemedButton>
-              </ScrollView>
-            )
-          }
+              <ThemedButton
+                icon="arrow-forward-outline"
+                onPress={handleSubmit}
+                disabled={isPosting}
+                style={styles.submitButton}
+              >
+                Guardar
+              </ThemedButton>
+            </ScrollView>
+          )}
         </KeyboardAvoidingView>
       )}
     </Formik>
   );
 };
 
-export default FormularioScreen;
-
 const styles = StyleSheet.create({
+  titleContainer: {
+    marginVertical: 20,
+  },
+  formContainer: {
+    marginTop: 20,
+  },
+  label: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 8,
+  },
   error: {
     color: "red",
     fontSize: 12,
+    marginTop: 4,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 10,
     marginBottom: 10,
+    backgroundColor: "#fff",
+  },
+  datePicker: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  submitButton: {
+    marginTop: 20,
+    paddingVertical: 12,
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
   },
 });
+
+export default FormularioScreen;
